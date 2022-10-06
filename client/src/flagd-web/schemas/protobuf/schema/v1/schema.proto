@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package schema.v1;
+
+option go_package = "schema/service/v1";
+option java_package = "dev.openfeature.flagd.grpc";
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/empty.proto";
+
+message ResolveBooleanRequest {
+    string flag_key = 1;
+    google.protobuf.Struct context = 2;
+}
+message ResolveBooleanResponse {
+    bool value = 1;
+    string reason = 2;
+    string variant = 3;
+}
+
+message ResolveStringRequest {
+    string flag_key = 1;
+    google.protobuf.Struct context = 2;
+}
+message ResolveStringResponse {
+    string value = 1;
+    string reason = 2;
+    string variant = 3;
+}
+
+message ResolveFloatRequest {
+    string flag_key = 1;
+    google.protobuf.Struct context = 2;
+}
+message ResolveFloatResponse {
+    double value = 1;
+    string reason = 2;
+    string variant = 3;
+}
+
+message ResolveIntRequest {
+    string flag_key = 1;
+    google.protobuf.Struct context = 2;
+}
+message ResolveIntResponse {
+    int64 value = 1;
+    string reason = 2;
+    string variant = 3;
+}
+
+message ResolveObjectRequest {
+    string flag_key = 1;
+    google.protobuf.Struct context = 2;
+}
+message ResolveObjectResponse {
+    google.protobuf.Struct value = 1;
+    string reason = 2;
+    string variant = 3;
+}
+
+message EventStreamResponse {
+    string type = 1;
+    google.protobuf.Struct data = 2;
+}
+
+service Service {
+    rpc ResolveBoolean(ResolveBooleanRequest) returns (ResolveBooleanResponse) {}
+    rpc ResolveString(ResolveStringRequest) returns (ResolveStringResponse) {}
+    rpc ResolveFloat(ResolveFloatRequest) returns (ResolveFloatResponse) {}
+    rpc ResolveInt(ResolveIntRequest) returns (ResolveIntResponse) {}
+    rpc ResolveObject(ResolveObjectRequest) returns (ResolveObjectResponse) {}
+    rpc EventStream(google.protobuf.Empty) returns (stream EventStreamResponse) {}
+}

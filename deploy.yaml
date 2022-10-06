@@ -1,0 +1,130 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flagd
+spec:
+  selector:
+    matchLabels:
+      app: flagd
+  template:
+    metadata:
+      labels:
+        app: flagd
+    spec:
+      containers:
+      - name: flagd
+        image: jamesmilligan/flagd
+        command: ["./flagd"]
+        args: [
+          "start", 
+          "--sync-provider", 
+          "filepath", 
+          "-f",
+          "mnt/example_flags.json",
+          "--cors-origin", 
+          '"*"'
+          ]
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        volumeMounts:
+        - mountPath: /mnt
+          name: flag-config
+        ports:
+        - containerPort: 8013
+      volumes:
+      - name: flag-config
+        configMap:
+          name: flag-config
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flagd-web-app
+spec:
+  selector:
+    matchLabels:
+      app: flagd-web-app
+  template:
+    metadata:
+      labels:
+        app: flagd-web-app
+    spec:
+      containers:
+      - name: flagd-web-app
+        image: jamesmilligan/flagd-web-client
+        ports:
+        - containerPort: 3000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flagd-svc
+  labels:
+    app: flagd
+spec:
+  ports:
+  - port: 8000
+    protocol: TCP
+    targetPort: 8013
+  selector:
+    app: flagd
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flagd-web-app-svc
+  labels:
+    app: flagd-web-app
+spec:
+  ports:
+  - port: 3000
+    protocol: TCP
+    targetPort: 3000
+  selector:
+    app: flagd-web-app
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: flagd-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  ingressClassName: nginx
+  defaultBackend:
+    service:
+      name: flagd-web-app-svc
+      port:
+        number: 3000
+  rules:
+  - http:
+      paths:
+      - path: /flagd(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: flagd-svc
+            port:
+              number: 8000
+---
+apiVersion: v1
+data:
+  example_flags.json: |
+    {
+      "flags": {
+        "bannerColor": {
+          "state": "ENABLED",
+          "variants": {
+            "orange": "#FFA500",
+            "blue": "#35A4FB"
+          },
+          "defaultVariant": "orange"
+        }
+      }
+    }
+kind: ConfigMap
+metadata:
+  name: flag-config
+
