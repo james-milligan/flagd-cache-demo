@@ -1,7 +1,28 @@
+apiVersion: core.openfeature.dev/v1alpha1
+kind: FeatureFlagConfiguration
+metadata:
+  name: featureflagconfiguration-demo
+spec:
+  featureFlagSpec: |
+    {
+      "flags": {
+        "bannerColor": {
+          "state": "ENABLED",
+          "variants": {
+            "orange": "#FFA500",
+            "blue": "#35A4FB"
+          },
+          "defaultVariant": "orange"
+        }
+      }
+    }
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: flagd
+  annotations:
+    openfeature.dev: "enabled"
 spec:
   selector:
     matchLabels:
@@ -18,9 +39,9 @@ spec:
         args: [
           "start", 
           "--sync-provider", 
-          "filepath", 
-          "-f",
-          "mnt/example_flags.json",
+          "kubernetes", 
+          "--sync-provider-args=featureflagconfiguration=featureflagconfiguration-demo",
+          "--sync-provider-args=namespace=open-feature-operator-system",
           "--cors-origin", 
           '"*"'
           ]
@@ -28,15 +49,8 @@ spec:
           limits:
             memory: "128Mi"
             cpu: "500m"
-        volumeMounts:
-        - mountPath: /mnt
-          name: flag-config
         ports:
         - containerPort: 8013
-      volumes:
-      - name: flag-config
-        configMap:
-          name: flag-config
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -91,6 +105,10 @@ metadata:
   name: flagd-ingress
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.org/proxy-connect-timeout: "1800"
+    nginx.org/proxy-read-timeout: "1800"
+    nginx.org/proxy-send-timeout: "1800"
+    nginx.org/proxy-stream-timeout: "1800"
 spec:
   ingressClassName: nginx
   defaultBackend:
@@ -109,22 +127,3 @@ spec:
             port:
               number: 8000
 ---
-apiVersion: v1
-data:
-  example_flags.json: |
-    {
-      "flags": {
-        "bannerColor": {
-          "state": "ENABLED",
-          "variants": {
-            "orange": "#FFA500",
-            "blue": "#35A4FB"
-          },
-          "defaultVariant": "orange"
-        }
-      }
-    }
-kind: ConfigMap
-metadata:
-  name: flag-config
-
